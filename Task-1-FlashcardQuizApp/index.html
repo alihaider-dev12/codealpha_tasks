@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuiz LMS Pro - Learning & Assessment Platform</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf.js for Certificate Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+    <div class="app-container">
+        <!-- Main Top Header -->
+        <header class="app-header">
+            <div class="logo-title">
+                <i class="fa-solid fa-code brand-icon"></i>
+                <h1>CodeQuiz <span>LMS Pro</span></h1>
+            </div>
+            <div class="top-controls">
+                <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound FX"><i id="sound-icon" class="fa-solid fa-volume-high"></i></button>
+                <button id="theme-toggle" class="icon-btn" title="Toggle Light/Dark Theme"><i class="fa-solid fa-gear"></i></button>
+                <button id="leaderboard-btn" class="btn primary-btn"><i class="fa-solid fa-trophy"></i> Board</button>
+                <button id="analytics-btn" class="btn purple-btn"><i class="fa-solid fa-chart-pie"></i> Analytics</button>
+                <button id="add-card-btn" class="btn accent-btn"><i class="fa-solid fa-plus"></i> Add Card</button>
+            </div>
+        </header>
+
+        <!-- Mode Bar & Streak Badge -->
+        <div class="mode-bar-container">
+            <div class="mode-buttons">
+                <span class="label-text">Mode:</span>
+                <button id="mode-flashcard-btn" class="mode-btn active"><i class="fa-solid fa-layer-group"></i> Practice & Type</button>
+                <button id="mode-mcq-btn" class="mode-btn"><i class="fa-solid fa-list-check"></i> MCQ Mode</button>
+                <button id="mode-exam-btn" class="mode-btn"><i class="fa-solid fa-graduation-cap"></i> Full Exam Test</button>
+            </div>
+            <div class="streak-badge">
+                <i class="fa-solid fa-fire fire-icon"></i> Streak: <span id="streak-val">0</span>
+            </div>
+        </div>
+
+        <!-- Filter Controls Row -->
+        <div class="filter-bar">
+            <select id="category-filter" class="filter-select">
+                <option value="All">All Track Courses</option>
+                <option value="HTML">HTML Course</option>
+                <option value="CSS">CSS Course</option>
+                <option value="JavaScript">JavaScript Course</option>
+                <option value="Data Science">Data Science Course</option>
+            </select>
+
+            <select id="difficulty-filter" class="filter-select">
+                <option value="All">All Difficulty Levels</option>
+                <option value="Easy">Easy Level</option>
+                <option value="Medium">Medium Level</option>
+                <option value="Hard">Hard Level</option>
+            </select>
+
+            <select id="bucket-filter" class="filter-select">
+                <option value="All">All Questions</option>
+                <option value="Revision">Weakness Bucket (Re-check)</option>
+            </select>
+        </div>
+
+        <!-- Toolbar / Action Icons -->
+        <div class="action-toolbar">
+            <div class="toolbar-group">
+                <button id="hint-btn" class="btn warning-btn" title="Get Conceptual Hint"><i class="fa-solid fa-lightbulb"></i> Hint</button>
+                <button id="bookmark-btn" class="icon-btn" title="Bookmark Card"><i id="star-icon" class="fa-regular fa-star"></i></button>
+                <button id="tts-btn" class="icon-btn" title="Listen Audio Readout"><i class="fa-solid fa-bullhorn"></i></button>
+                <button id="shuffle-btn" class="icon-btn" title="Shuffle Cards"><i class="fa-solid fa-shuffle"></i></button>
+                <button id="export-btn" class="icon-btn" title="Backup Course Data"><i class="fa-solid fa-file-export"></i></button>
+                <label for="import-file" class="icon-btn" title="Import Course Data" style="cursor: pointer;"><i class="fa-solid fa-file-import"></i></label>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </div>
+        </div>
+
+        <!-- Timer & Leitner Box Info Bar -->
+        <div class="timer-leitner-bar">
+            <div class="timer-box">
+                <i class="fa-solid fa-stopwatch"></i> Timer: <span id="timer-display">30</span>s
+                <select id="timer-select" class="mini-select">
+                    <option value="30">30 Seconds</option>
+                    <option value="60">60 Seconds</option>
+                    <option value="90">90 Seconds</option>
+                </select>
+                <button id="toggle-timer-btn" class="btn mini-btn">Start Timer</button>
+            </div>
+            <div class="box-info">
+                Leitner Box: <strong id="box-num">1</strong>
+            </div>
+        </div>
+
+        <!-- Main Interactive Quiz View -->
+        <main id="quiz-main-view">
+            <!-- 1. Practice & Flashcard Mode View -->
+            <div id="flashcard-mode-view" class="card-wrapper">
+                <div class="flashcard-container">
+                    <div id="flashcard" class="flashcard">
+                        <!-- Card Front -->
+                        <div class="card-face card-front">
+                            <div class="card-header-tags">
+                                <span id="card-category-badge" class="tag category-tag">Category</span>
+                                <span id="card-type-badge" class="tag type-tag">Type</span>
+                                <span id="card-difficulty-badge" class="tag diff-tag">Difficulty</span>
+                            </div>
+
+                            <!-- Integrated Clean Code Window Box -->
+                            <div id="code-container" class="code-container-box">
+                                <div class="code-window-header">
+                                    <div class="window-dots">
+                                        <span class="dot dot-red"></span>
+                                        <span class="dot dot-yellow"></span>
+                                        <span class="dot dot-green"></span>
+                                    </div>
+                                    <span class="code-lang-label">Code Snippet</span>
+                                </div>
+                                <pre><code id="card-code-block" class="code-content"></code></pre>
+                            </div>
+
+                            <p id="card-question" class="question-text">Loading question...</p>
+
+                            <button id="toggle-answer-btn" class="btn lock-reveal-btn locked-btn" disabled>
+                                <i class="fa-solid fa-lock"></i> Type Answer First to Unlock
+                            </button>
+                        </div>
+
+                        <!-- Card Back (Answer & Explanation) -->
+                        <div class="card-face card-back">
+                            <h3><i class="fa-solid fa-check-circle"></i> Correct Answer</h3>
+                            <div id="card-answer" class="answer-box">---</div>
+                            <button id="hide-answer-btn" class="btn secondary-btn"><i class="fa-solid fa-rotate-left"></i> Flip Back to Question</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Field & Submit -->
+                <div class="user-input-section">
+                    <div class="input-group">
+                        <input type="text" id="user-answer-input" placeholder="Type answer or snippet output here..." autocomplete="off">
+                        <button id="submit-answer-btn" class="btn primary-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                    <div id="feedback-msg" class="feedback-box" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 2. MCQ Mode View -->
+            <div id="mcq-mode-view" class="card-wrapper" style="display: none;">
+                <div class="mcq-card-container">
+                    <div class="code-container-box" id="mcq-code-container">
+                        <div class="code-window-header">
+                            <div class="window-dots">
+                                <span class="dot dot-red"></span>
+                                <span class="dot dot-yellow"></span>
+                                <span class="dot dot-green"></span>
+                            </div>
+                            <span class="code-lang-label">Snippet</span>
+                        </div>
+                        <pre><code id="mcq-code-block" class="code-content"></code></pre>
+                    </div>
+                    <h3 id="mcq-question-text" class="question-text">MCQ Question goes here?</h3>
+                    <div id="mcq-options-container" class="mcq-options-grid"></div>
+                </div>
+            </div>
+
+            <!-- Card Nav Controls -->
+            <div class="nav-controls">
+                <button id="prev-btn" class="btn nav-btn"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <span id="card-counter" class="card-counter">1 / 5</span>
+                <button id="next-btn" class="btn nav-btn">Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </main>
+
+        <!-- Exam Mode Result View -->
+        <div id="exam-result-view" class="exam-result-card" style="display: none;">
+            <h2><i class="fa-solid fa-award"></i> Exam Assessment Completed!</h2>
+            <div class="result-stats-grid">
+                <div class="r-stat"><span>Score:</span> <strong id="exam-final-score">0/0</strong></div>
+                <div class="r-stat"><span>Accuracy:</span> <strong id="exam-final-accuracy">0%</strong></div>
+                <div class="r-stat"><span>Grade:</span> <strong id="exam-final-grade">F</strong></div>
+            </div>
+
+            <div id="cert-eligible-box" class="cert-box" style="display: none;">
+                <h3><i class="fa-solid fa-certificate"></i> Congratulations! Certificate Unlocked</h3>
+                <p>You passed with 80%+ score. Enter your name to generate your verified certificate:</p>
+                <div class="cert-input-row">
+                    <input type="text" id="candidate-name-input" placeholder="Enter Full Name">
+                    <button id="download-cert-btn" class="btn success-btn"><i class="fa-solid fa-download"></i> Download PDF Certificate</button>
+                </div>
+            </div>
+
+            <button id="restart-exam-btn" class="btn primary-btn"><i class="fa-solid fa-rotate-right"></i> Restart Exam</button>
+        </div>
+
+        <!-- Scoreboard Stats Footer -->
+        <footer class="scoreboard-footer">
+            <div class="stat-item">Score: <strong id="score-val">0</strong></div>
+            <div class="stat-item">Attempts: <strong id="attempts-val">0</strong></div>
+            <div class="stat-item">Accuracy: <strong id="accuracy-val">0%</strong></div>
+        </footer>
+
+        <!-- Badges Bar -->
+        <div class="badges-bar">
+            <span id="badge-starter" class="badge-item"><i class="fa-solid fa-seedling"></i> Rookie</span>
+            <span id="badge-streak5" class="badge-item"><i class="fa-solid fa-fire"></i> On Fire</span>
+            <span id="badge-master" class="badge-item"><i class="fa-solid fa-trophy"></i> Code Master</span>
+        </div>
+
+        <!-- Management Row -->
+        <div class="admin-actions">
+            <button id="edit-btn" class="btn warning-btn"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+            <button id="delete-btn" class="btn danger-btn"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+    </div>
+
+    <!-- HINT MODAL -->
+    <div id="hint-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span id="close-hint" class="close-btn">&times;</span>
+            <h2><i class="fa-solid fa-lightbulb"></i> Conceptual Hint</h2>
+            <h4 id="hint-topic-title">Topic</h4>
+            <p id="hint-explanation-text">Explanation goes here...</p>
+            <div class="code-container-box">
+                <pre><code id="hint-code-example" class="code-content"></code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD MODAL -->
+    <div id="leaderboard-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span id="close-leaderboard" class="close-btn">&times;</span>
+            <h2><i class="fa-solid fa-trophy"></i> Exam Leaderboard</h2>
+            <div id="leaderboard-list" class="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <!-- ANALYTICS MODAL -->
+    <div id="analytics-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content chart-modal">
+            <span id="close-analytics" class="close-btn">&times;</span>
+            <h2><i class="fa-solid fa-chart-column"></i> Topic Performance Analytics</h2>
+            <div class="chart-box-wrapper">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT CARD MODAL -->
+    <div id="card-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span id="close-modal" class="close-btn">&times;</span>
+            <h2 id="modal-title">Add Question Card</h2>
+            <form id="card-form">
+                <div class="form-group">
+                    <label>Course Track:</label>
+                    <select id="category-input" class="filter-select">
+                        <option value="HTML">HTML</option>
+                        <option value="CSS">CSS</option>
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="Data Science">Data Science</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Question Type:</label>
+                    <select id="type-input" class="filter-select">
+                        <option value="Dry Run Output">Dry Run Output</option>
+                        <option value="Syntax Fill-in">Syntax Fill-in</option>
+                        <option value="Bug Hunt">Bug Hunt</option>
+                        <option value="Standard Q&A">Standard Q&A</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Question Title:</label>
+                    <input type="text" id="question-input" required placeholder="Enter question statement">
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer:</label>
+                    <input type="text" id="answer-input" required placeholder="Exact answer or expected output">
+                </div>
+                <div class="form-group">
+                    <label>Code Snippet (Optional):</label>
+                    <textarea id="code-snippet-input" rows="3" placeholder="Enter code snippet here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Explanation / Concept Hint:</label>
+                    <textarea id="explanation-input" rows="2" placeholder="Brief hint or logic explanation"></textarea>
+                </div>
+                <button type="submit" class="btn success-btn full-btn">Save Question Card</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CERTIFICATE HIDDEN TEMPLATE FOR PDF EXPORT -->
+    <div id="certificate-template" class="certificate-container" style="display: none;">
+        <div class="cert-border">
+            <div class="cert-inner">
+                <div class="cert-header">
+                    <h2>CERTIFICATE OF ACHIEVEMENT</h2>
+                    <p>This is to certify that</p>
+                </div>
+                <h1 id="cert-user-name">Candidate Name</h1>
+                <p class="cert-desc">has successfully passed the comprehensive assessment in</p>
+                <h3 class="cert-course">Full Stack Web Development & Data Science Tracks</h3>
+                <p id="cert-date">Date: DD/MM/YYYY</p>
+                <div class="cert-footer">
+                    <div class="cert-signature">
+                        <div class="sig-line"></div>
+                        <span>Course Director</span>
+                    </div>
+                    <div class="cert-qr">
+                        <div id="cert-qrcode-box"></div>
+                        <span id="cert-verification-id">#QMP-0000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
